@@ -1,6 +1,7 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, Response, render_template
 from flask_cors import CORS
 import requests
+import json
 
 app = Flask(__name__)
 CORS(app)
@@ -13,27 +14,29 @@ def home():
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
-
     data = request.get_json()
-
     messages = data.get("messages", [])
 
-    response = requests.post(
-        OLLAMA_API_URL,
-        json={
-            "model": "llama3",
-            "messages": messages,
-            "stream": False
-        }
-    )
+    def generate():
+        with requests.post(
+            OLLAMA_API_URL,
+            json={
+                "model": "llama3",
+                "messages": messages,
+                "stream": True
+            },
+            stream=True
+        ) as response:
 
-    result = response.json()
+            for line in response.iter_lines():
+                if line:
+                    chunk = json.loads(line.decode("utf-8"))
 
-    print(result)
+                    if "message" in chunk:
+                        content = chunk["message"].get("content", "")
+                        yield content
 
-    return jsonify({
-        "reply": result["message"]["content"]
-    })
+    return Response(generate(), content_type="text/plain")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, threaded=True)

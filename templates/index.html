@@ -1,110 +1,300 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Local ChatGPT</title>
+  <title>Local Llama Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial;
-      background: #343541;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
       color: white;
       margin: 0;
+      height: 100vh;
+      display: flex;
+    }
+
+    .sidebar {
+      width: 260px;
+      background: rgba(15, 23, 42, 0.95);
+      padding: 20px;
+      border-right: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .sidebar h2 {
+      margin-top: 0;
+      font-size: 22px;
+    }
+
+    .new-chat {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 12px;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+      margin-top: 20px;
+      font-size: 15px;
+    }
+
+    .status {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 10px;
+      background: rgba(34, 197, 94, 0.15);
+      color: #86efac;
+      font-size: 14px;
+    }
+
+    .main {
+      flex: 1;
       display: flex;
       flex-direction: column;
       height: 100vh;
     }
 
+    .header {
+      padding: 20px 30px;
+      background: rgba(15, 23, 42, 0.8);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .header p {
+      margin: 5px 0 0;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+
     #chat {
       flex: 1;
-      padding: 20px;
+      padding: 30px;
       overflow-y: auto;
     }
 
     .msg {
-      margin: 10px 0;
-      padding: 10px;
-      border-radius: 8px;
-      max-width: 70%;
+      margin: 14px 0;
+      padding: 15px 18px;
+      border-radius: 18px;
+      max-width: 75%;
+      line-height: 1.6;
+      animation: fadeIn 0.25s ease;
+      white-space: pre-wrap;
     }
 
     .user {
-      background: #2b2c2f;
-      align-self: flex-end;
+      background: #2563eb;
       margin-left: auto;
+      border-bottom-right-radius: 5px;
     }
 
     .ai {
-      background: #444654;
+      background: rgba(255,255,255,0.09);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #e5e7eb;
+      border-bottom-left-radius: 5px;
+    }
+
+    .sender {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+      font-size: 13px;
+      color: #cbd5e1;
     }
 
     #inputArea {
       display: flex;
-      padding: 10px;
-      background: #40414f;
+      gap: 12px;
+      padding: 20px 30px;
+      background: rgba(15, 23, 42, 0.95);
+      border-top: 1px solid rgba(255,255,255,0.1);
     }
 
     input {
       flex: 1;
-      padding: 10px;
-      border: none;
-      border-radius: 5px;
+      padding: 15px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 15px;
       outline: none;
+      background: rgba(255,255,255,0.08);
+      color: white;
+      font-size: 16px;
+    }
+
+    input::placeholder {
+      color: #94a3b8;
     }
 
     button {
-      margin-left: 10px;
-      padding: 10px;
-      background: #19c37d;
+      padding: 0 22px;
+      background: #22c55e;
       border: none;
       color: white;
       cursor: pointer;
-      border-radius: 5px;
+      border-radius: 15px;
+      font-size: 15px;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background: #16a34a;
+    }
+
+    .typing {
+      color: #94a3b8;
+      font-style: italic;
+      margin-top: 10px;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        display: none;
+      }
+
+      .header {
+        padding: 16px 20px;
+      }
+
+      #chat {
+        padding: 20px;
+      }
+
+      .msg {
+        max-width: 90%;
+      }
+
+      #inputArea {
+        padding: 15px;
+      }
     }
   </style>
 </head>
 
 <body>
 
-<div id="chat"></div>
+  <div class="sidebar">
+    <h2>🧠 LlamaBot</h2>
+    <button class="new-chat" onclick="newChat()">+ New Chat</button>
+    <div class="status">● Local Llama 3 Active</div>
+  </div>
 
-<div id="inputArea">
-  <input id="msg" placeholder="Message..." />
-  <button onclick="send()">Send</button>
-</div>
+  <div class="main">
+    <div class="header">
+      <h1>Local AI Assistant</h1>
+      <p>Private chatbot powered by your local Llama 3 model</p>
+    </div>
+
+    <div id="chat">
+      <div class="msg ai">
+        <span class="sender">AI</span>
+        Hello 👋 I am your local Llama 3 assistant. How can I help you today?
+      </div>
+    </div>
+
+    <div id="inputArea">
+      <input id="msg" placeholder="Message your local AI..." onkeydown="handleEnter(event)" />
+      <button onclick="send()">Send</button>
+    </div>
+  </div>
 
 <script>
 let messages = [];
 
 async function send() {
     const input = document.getElementById("msg");
-    const text = input.value;
+    const text = input.value.trim();
     if (!text) return;
 
     input.value = "";
 
     messages.push({ role: "user", content: text });
-
     addMessage("You", text, "user");
 
-    const res = await fetch("http://127.0.0.1:5000/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages })
-    });
+    const aiDiv = document.createElement("div");
+    aiDiv.className = "msg ai";
+    aiDiv.innerHTML = `<span class="sender">AI</span><span class="typing">AI is thinking...</span>`;
+    document.getElementById("chat").appendChild(aiDiv);
+    aiDiv.scrollIntoView();
 
-    const data = await res.json();
+    try {
+        const res = await fetch("http://127.0.0.1:5000/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ messages })
+        });
 
-    messages.push({ role: "assistant", content: data.reply });
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
 
-    addMessage("AI", data.reply, "ai");
+        let fullReply = "";
+        let firstChunk = true;
+
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            fullReply += chunk;
+
+            if (firstChunk) {
+                aiDiv.innerHTML = `<span class="sender">AI</span>`;
+                firstChunk = false;
+            }
+
+            aiDiv.innerHTML = `<span class="sender">AI</span>${fullReply}`;
+            aiDiv.scrollIntoView();
+        }
+
+        messages.push({ role: "assistant", content: fullReply });
+
+    } catch (error) {
+        aiDiv.innerHTML = `<span class="sender">AI</span>Error: Could not connect to local Llama 3 server.`;
+    }
 }
 
 function addMessage(sender, text, type) {
     const div = document.createElement("div");
     div.className = "msg " + type;
-    div.innerHTML = "<b>" + sender + ":</b> " + text;
+    div.innerHTML = `<span class="sender">${sender}</span>${text}`;
     document.getElementById("chat").appendChild(div);
-
     div.scrollIntoView();
+}
+
+function handleEnter(event) {
+    if (event.key === "Enter") {
+      send();
+    }
+}
+
+function newChat() {
+    messages = [];
+    document.getElementById("chat").innerHTML = `
+      <div class="msg ai">
+        <span class="sender">AI</span>
+        New chat started. How can I help?
+      </div>
+    `;
 }
 </script>
 
