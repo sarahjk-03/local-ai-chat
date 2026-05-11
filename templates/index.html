@@ -23,6 +23,7 @@
       background: rgba(15, 23, 42, 0.95);
       padding: 20px;
       border-right: 1px solid rgba(255,255,255,0.1);
+      overflow-y: auto;
     }
 
     .sidebar h2 {
@@ -49,6 +50,54 @@
       background: rgba(34, 197, 94, 0.15);
       color: #86efac;
       font-size: 14px;
+    }
+
+    .chat-history-title {
+      margin-top: 25px;
+      margin-bottom: 10px;
+      font-size: 14px;
+      color: #94a3b8;
+    }
+
+    .chat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.06);
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .chat-item:hover {
+      background: rgba(255,255,255,0.12);
+    }
+
+    .chat-item.active {
+      background: rgba(37, 99, 235, 0.45);
+    }
+
+    .chat-title {
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .delete-chat {
+      background: transparent;
+      color: #f87171;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      padding: 2px 6px;
+    }
+
+    .delete-chat:hover {
+      color: #ef4444;
     }
 
     .main {
@@ -196,7 +245,10 @@
   <div class="sidebar">
     <h2>🧠 LlamaBot</h2>
     <button class="new-chat" onclick="newChat()">+ New Chat</button>
-    <div class="status">● Local Llama 3 Active</div>
+    <div class="status">Local Llama 3 Active</div>
+
+    <div class="chat-history-title">Previous Chats</div>
+    <div id="chatHistory"></div>
   </div>
 
   <div class="main">
@@ -205,12 +257,7 @@
       <p>Private chatbot powered by your local Llama 3 model</p>
     </div>
 
-    <div id="chat">
-      <div class="msg ai">
-        <span class="sender">AI</span>
-        Hello 👋 I am your local Llama 3 assistant. How can I help you today?
-      </div>
-    </div>
+    <div id="chat"></div>
 
     <div id="inputArea">
       <input id="msg" placeholder="Message your local AI..." onkeydown="handleEnter(event)" />
@@ -219,7 +266,21 @@
   </div>
 
 <script>
+let chats = JSON.parse(localStorage.getItem("llamaChats")) || [];
+let currentChatId = null;
 let messages = [];
+
+window.onload = function () {
+    if (chats.length === 0) {
+        newChat();
+    } else {
+        currentChatId = chats[0].id;
+        messages = chats[0].messages;
+        loadChat(currentChatId);
+    }
+
+    renderChatHistory();
+};
 
 async function send() {
     const input = document.getElementById("msg");
@@ -230,6 +291,9 @@ async function send() {
 
     messages.push({ role: "user", content: text });
     addMessage("You", text, "user");
+
+    updateCurrentChatTitle(text);
+    saveCurrentChat();
 
     const aiDiv = document.createElement("div");
     aiDiv.className = "msg ai";
@@ -267,6 +331,7 @@ async function send() {
         }
 
         messages.push({ role: "assistant", content: fullReply });
+        saveCurrentChat();
 
     } catch (error) {
         aiDiv.innerHTML = `<span class="sender">AI</span>Error: Could not connect to local Llama 3 server.`;
@@ -283,18 +348,130 @@ function addMessage(sender, text, type) {
 
 function handleEnter(event) {
     if (event.key === "Enter") {
-      send();
+        send();
     }
 }
 
 function newChat() {
+    const newChatObj = {
+        id: Date.now(),
+        title: "New Chat",
+        messages: []
+    };
+
+    chats.unshift(newChatObj);
+    currentChatId = newChatObj.id;
     messages = [];
+
     document.getElementById("chat").innerHTML = `
       <div class="msg ai">
         <span class="sender">AI</span>
         New chat started. How can I help?
       </div>
     `;
+
+    saveChats();
+    renderChatHistory();
+}
+
+function loadChat(chatId) {
+    currentChatId = chatId;
+
+    const selectedChat = chats.find(chat => chat.id === chatId);
+    if (!selectedChat) return;
+
+    messages = selectedChat.messages;
+
+    const chatBox = document.getElementById("chat");
+    chatBox.innerHTML = "";
+
+    if (messages.length === 0) {
+        chatBox.innerHTML = `
+          <div class="msg ai">
+            <span class="sender">AI</span>
+            New chat started. How can I help?
+          </div>
+        `;
+    } else {
+        messages.forEach(message => {
+            if (message.role === "user") {
+                addMessage("You", message.content, "user");
+            } else {
+                addMessage("AI", message.content, "ai");
+            }
+        });
+    }
+
+    renderChatHistory();
+}
+
+function deleteChat(chatId, event) {
+    event.stopPropagation();
+
+    chats = chats.filter(chat => chat.id !== chatId);
+
+    if (chats.length === 0) {
+        saveChats();
+        newChat();
+        return;
+    }
+
+    if (currentChatId === chatId) {
+        currentChatId = chats[0].id;
+        messages = chats[0].messages;
+        loadChat(currentChatId);
+    }
+
+    saveChats();
+    renderChatHistory();
+}
+
+function renderChatHistory() {
+    const chatHistory = document.getElementById("chatHistory");
+    chatHistory.innerHTML = "";
+
+    chats.forEach(chat => {
+        const chatItem = document.createElement("div");
+        chatItem.className = "chat-item";
+
+        if (chat.id === currentChatId) {
+            chatItem.classList.add("active");
+        }
+
+        chatItem.onclick = function () {
+            loadChat(chat.id);
+        };
+
+        chatItem.innerHTML = `
+          <span class="chat-title">${chat.title}</span>
+          <button class="delete-chat" onclick="deleteChat(${chat.id}, event)">🗑</button>
+        `;
+
+        chatHistory.appendChild(chatItem);
+    });
+}
+
+function updateCurrentChatTitle(firstMessage) {
+    const selectedChat = chats.find(chat => chat.id === currentChatId);
+
+    if (selectedChat && selectedChat.title === "New Chat") {
+        selectedChat.title = firstMessage.substring(0, 30);
+        renderChatHistory();
+    }
+}
+
+function saveCurrentChat() {
+    const selectedChat = chats.find(chat => chat.id === currentChatId);
+
+    if (selectedChat) {
+        selectedChat.messages = messages;
+    }
+
+    saveChats();
+}
+
+function saveChats() {
+    localStorage.setItem("llamaChats", JSON.stringify(chats));
 }
 </script>
 
