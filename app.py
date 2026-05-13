@@ -16,12 +16,14 @@ def home():
 def chat():
     data = request.get_json()
     messages = data.get("messages", [])
+    model = data.get("model", "llama3")
+    print("Selected model:", model)
 
     def generate():
         with requests.post(
             OLLAMA_API_URL,
             json={
-                "model": "llama3",
+                "model": model,
                 "messages": messages,
                 "stream": True
             },

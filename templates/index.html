@@ -137,6 +137,33 @@
       font-size: 14px;
     }
 
+    .model-box {
+      margin-top: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .model-box label {
+      font-size: 14px;
+      color: #b4b4b4;
+    }
+
+    .model-box select {
+      background: #2f2f2f;
+      color: #ececec;
+      border: 1px solid #3a3a3a;
+      border-radius: 10px;
+      padding: 8px 12px;
+      outline: none;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .model-box select:focus {
+      border-color: #565656;
+    }
+
     #chat {
       flex: 1;
       padding: 30px;
@@ -409,7 +436,9 @@
   <div class="sidebar">
     <h2>🧠 LlamaBot</h2>
     <button class="new-chat" onclick="newChat()">+ New Chat</button>
-    <div class="status">Local Llama 3 Active</div>
+    <div class="status" id="modelStatus">
+       Local Llama 3 Active
+    </div>
 
     <div class="chat-history-title">Previous Chats</div>
     <div id="chatHistory"></div>
@@ -419,6 +448,15 @@
     <div class="header">
       <h1>Local AI Assistant</h1>
       <p>Private chatbot powered by your local Llama 3 model</p>
+
+      <div class="model-box">
+        <label for="modelSelect">Model:</label>
+        <select id="modelSelect">
+          <option value="llama3">Llama 3</option>
+          <option value="mistral">Mistral</option>
+          <option value="qwen2.5:7b">Qwen 2.5</option>
+        </select>
+      </div>
     </div>
 
     <div id="chat"></div>
@@ -462,6 +500,25 @@ window.onload = function () {
     renderChatHistory();
 };
 
+const modelSelect = document.getElementById("modelSelect");
+const modelStatus = document.getElementById("modelStatus");
+
+modelSelect.addEventListener("change", () => {
+    const selectedModel = modelSelect.value;
+
+    let modelName = selectedModel;
+
+    if (selectedModel === "llama3") {
+        modelName = "Llama 3";
+    } else if (selectedModel === "mistral") {
+        modelName = "Mistral";
+    } else if (selectedModel === "qwen2.5:7b") {
+        modelName = "Qwen 2.5";
+    }
+
+    modelStatus.textContent = `Local ${modelName} Active`;
+});
+
 async function send() {
     const input = document.getElementById("msg");
     const text = input.value.trim();
@@ -477,7 +534,11 @@ async function send() {
 
     const aiDiv = document.createElement("div");
     aiDiv.className = "msg ai";
-    aiDiv.innerHTML = `<span class="sender">AI</span><div class="typing">AI is thinking...</div>`;
+    const selectedModel = document.getElementById("modelSelect").value;
+    aiDiv.innerHTML = `
+    <span class="sender">AI · ${selectedModel}</span>
+     <div class="ai-content"><span class="typing">Typing...</span></div>
+    `;
     document.getElementById("chat").appendChild(aiDiv);
     aiDiv.scrollIntoView();
 
@@ -485,7 +546,10 @@ async function send() {
         const res = await fetch("http://127.0.0.1:5000/api/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ messages })
+            body: JSON.stringify({
+                messages: messages,
+                model: document.getElementById("modelSelect").value
+            })
         });
 
         const reader = res.body.getReader();
@@ -502,7 +566,10 @@ async function send() {
             fullReply += chunk;
 
             if (firstChunk) {
-                aiDiv.innerHTML = `<span class="sender">AI</span><div class="ai-content"></div>`;
+                aiDiv.innerHTML = `
+                  <span class="sender">AI · ${selectedModel}</span>
+                  <div class="ai-content"></div>
+            `;
                 firstChunk = false;
             }
 
